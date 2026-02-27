@@ -78,13 +78,7 @@ img{
 
 <h2>Add Fault</h2>
 
-<select id="machine">
-  <option value="">Select Machine</option>
-  <option>Excavator 1</option>
-  <option>Crusher A</option>
-  <option>Conveyor Line 3</option>
-  <option>Generator Unit 2</option>
-</select>
+<input id="machine" placeholder="Machine Name">
 
 <input id="subdivision" placeholder="Subdivision">
 <input id="fault" placeholder="Fault Description">
@@ -96,14 +90,10 @@ img{
 <button onclick="addFault()">Save Fault</button>
 
 <h2>Search & Filters</h2>
-<input id="search" placeholder="Search all fields" oninput="render()">
-<select id="filterMachine" onchange="render()">
-  <option value="">Filter by Machine</option>
-  <option>Excavator 1</option>
-  <option>Crusher A</option>
-  <option>Conveyor Line 3</option>
-  <option>Generator Unit 2</option>
-</select>
+
+  <input id="search" placeholder="Search all fields" oninput="render()">
+
+  
 <input type="date" id="filterDate" onchange="render()">
 
 <button onclick="exportCSV()">Export CSV</button>
@@ -158,9 +148,9 @@ function deleteFault(id){
 
 function render(){
   const searchText = search.value.toLowerCase();
-  const filterMachineVal = filterMachine.value;
+  
   const filterDateVal = filterDate.value;
-
+(filterMachineVal==="" || f.machine.toLowerCase().includes(filterMachineVal.toLowerCase()))
   const filtered = faults.filter(f =>
     (f.machine + f.subdivision + f.fault + f.action + f.stores + f.manual)
       .toLowerCase().includes(searchText)
