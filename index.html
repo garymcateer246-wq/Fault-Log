@@ -1,1 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fault Logger Pro</title>
 
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#1e1e1e;
+  color:white;
+  margin:15px;
+}
+h1,h2{text-align:center;}
+input, textarea, button{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:6px;
+  border:none;
+  font-size:14px;
+}
+input, textarea{
+  background:#2c2c2c;
+  color:white;
+}
+button{
+  background:#ff9500;
+  color:black;
+  font-weight:bold;
+}
+.card{
+  background:#2c2c2c;
+  padding:10px;
+  margin:10px 0;
+  border-radius:8px;
+}
+img{
+  max-width:100%;
+  border-radius:6px;
+  margin-top:5px;
+}
+.small-btn{
+  width:auto;
+  padding:5px 10px;
+  font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Fault Logger Pro</h1>
+
+<h2>Add Fault</h2>
+
+<input id="machine" placeholder="Machine Name">
+<input id="subdivision" placeholder="Subdivision">
+<input id="fault" placeholder="Fault Description">
+<textarea id="action" placeholder="Action Taken"></textarea>
+<input id="stores" placeholder="Stores Location / Parts">
+<input id="manual" placeholder="Manual Chapter / Page">
+<input type="date" id="date">
+<input type="file" id="photo" accept="image/*">
+
+<button onclick="addFault()">Save Fault</button>
+
+<h2>Search & Filters</h2>
+
+<input id="search" placeholder="Search all fields" oninput="render()">
+<input id="filterMachine" placeholder="Filter by Machine" oninput="render()">
+<input type="date" id="filterDate" onchange="render()">
+
+<button onclick="exportCSV()">Export CSV</button>
+<button onclick="emailReport()">Email Report</button>
+<button onclick="clearAll()">Clear All Data</button>
+
+<h2>Fault Logs</h2>
+<div id="logs"></div>
+
+<script>
+
+let faults = JSON.parse(localStorage.getItem("faults_pro")) || [];
+
+function saveData(){
+  localStorage.setItem("faults_pro", JSON.stringify(faults));
+}
+
+function addFault(){
+
+  const fileInput = document.getElementById("photo");
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(){
+
+    const newFault = {
+      id: Date.now(),
+      machine: document.getElementById("machine").value,
+      subdivision: document.getElementById("subdivision").value,
+      fault: document.getElementById("fault").value,
+      action: document.getElementById("action").value,
+      stores: document.getElementById("stores").value,
+      manual: document.getElementById("manual").value,
+      date: document.getElementById("date").value,
+      photo: reader.result || ""
+    };
+
+    faults.push(newFault);
+    saveData();
+    clearForm();
+    render();
+  };
+
+  if(file){
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload();
+  }
+}
+
+function clearForm(){
+  document.querySelectorAll("input, textarea").forEach(el=>{
+    if(el.type !== "file") el.value="";
+  });
+  document.getElementById("photo").value="";
+}
+
+function deleteFault(id){
+  faults = faults.filter(f=>f.id!==id);
+  saveData();
+  render();
+}
+
+function render(){
+
+  const searchText = document.getElementById("search").value.toLowerCase();
+  const filterMachineVal = document.getElementById("filterMachine").value.toLowerCase();
+  const filterDateVal = document.getElementById("filterDate").value;
+
+  const filtered = faults.filter(f =>
+    (
+      f.machine +
+      f.subdivision +
+      f.fault +
+      f.action +
+      f.stores +
+      f.manual
+    ).toLowerCase().includes(searchText)
+    &&
+    (filterMachineVal === "" || f.machine.toLowerCase().includes(filterMachineVal))
+    &&
+    (filterDateVal === "" || f.date === filterDateVal)
+  );
+
+  const logs = document.getElementById("logs");
+  logs.innerHTML = "";
+
+  filtered.slice().reverse().forEach(f=>{
+    logs.innerHTML += `
+      <div class="card">
+        <b>Machine:</b> ${f.machine}<br>
+        <b>Date:</b> ${f.date}<br>
+        <b>Subdivision:</b> ${f.subdivision}<br>
+        <b>Fault:</b> ${f.fault}<br>
+        <b>Action:</b> ${f.action}<br>
+        <b>Stores:</b> ${f.stores}<br>
+        <b>Manual:</b> ${f.manual}<br>
+        ${f.photo ? `<img src="${f.photo}">`:""}
+        <br><br>
+        <button class="small-btn" onclick="deleteFault(${f.id})">Delete</button>
+      </div>
+    `;
+  });
+
+}
+
+function exportCSV(){
+
+  let csv="Machine,Subdivision,Date,Fault,Action,Stores,Manual\n";
+
+  faults.forEach(f=>{
+    csv+=`"${f.machine}","${f.subdivision}","${f.date}","${f.fault}","${f.action}","${f.stores}","${f.manual}"\n`;
+  });
+
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="fault_logs.csv";
+  a.click();
+}
+
+function emailReport(){
+
+  let body="Fault Report:\n\n";
+
+  faults.forEach(f=>{
+    body+=`Machine: ${f.machine}\nDate: ${f.date}\nFault: ${f.fault}\nAction: ${f.action}\n\n`;
+  });
+
+  window.location.href=`mailto:?subject=Fault Report&body=${encodeURIComponent(body)}`;
+}
+
+function clearAll(){
+  if(confirm("Delete ALL fault logs?")){
+    faults=[];
+    saveData();
+    render();
+  }
+}
+
+render();
+
+</script>
+
+</body>
+</html>
